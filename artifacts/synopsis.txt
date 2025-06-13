@@ -1,0 +1,203 @@
+Storyline for Your Interview
+Title: "From Raw Data to Actionable Insights: Building a YouTube View Prediction Model"
+
+Narrative:
+*"I built a model to predict YouTube video views—a challenging task due to extreme variance in view counts. Starting with raw video metadata and thumbnail features, I engineered log-transformed targets to handle skewness and implemented a hybrid Random Forest + Quantile Regression approach. While traditional metrics showed limitations (269% MAE in raw views), I focused on delivering business value through prediction intervals. The final model provides creators with a likely view range (e.g., '5K–19K views') and achieves 72.5% coverage of actual views within its bounds. Key innovations included robust feature engineering (like upload-time harmonics) and addressing overfitting via quantile loss. Next steps include adding engagement signals (likes/comments) to tighten intervals."*
+
+Step-by-Step Interview Preparation List
+1. Problem Framing
+Identified business need: Predict YouTube views to help creators optimize content.
+
+Defined success: Actionable ranges (not just point estimates).
+
+2. Data Collection
+Merged two datasets:
+
+thumbnail_features.csv (visual attributes)
+
+youtube_dataset_with_full_countries.csv (metadata, views).
+
+Handled missing data:
+
+Filled genre/category with "unknown."
+
+Imputed text features (e.g., empty titles).
+
+3. Feature Engineering
+Transformed targets:
+
+Log10(view_count + 1) to handle skew.
+
+Capped extreme views at 99th percentile.
+
+Created time-based features:
+
+upload_hour, upload_dayofweek, upload_month.
+
+Engineered text features:
+
+title_length, TF-IDF on titles.
+
+4. Preprocessing Pipeline
+Built a ColumnTransformer with:
+
+Numeric: Median imputation + RobustScaler.
+
+Categorical: Mode imputation + TargetEncoder.
+
+Text: TfidfVectorizer (100 max features).
+
+5. Baseline Model (Random Forest)
+Trained with RandomizedSearchCV (20 iterations, 5-fold CV).
+
+Best params: max_depth=30, n_estimators=463, etc.
+
+Results:
+
+Train R²: 0.90 → Overfitting detected.
+
+Test R²: 0.62 → Explained 62% of variance.
+
+6. Quantile Regression (LightGBM)
+Targeted quantiles: [0.1, 0.5, 0.9] for prediction intervals.
+
+Achieved:
+
+72.5% coverage (actual views within 1.9x range).
+
+Pinball loss: 0.0196 for 90th percentile.
+
+7. Hybrid Approach
+Combined Random Forest (median) + Quantile (ranges).
+
+Visualized intervals showing underprediction for viral videos.
+
+8. Business Metrics
+Translated to creator-friendly outputs:
+
+"Your video will likely get between 5.3K–19K views (72.5% confidence)."
+
+9. Limitations & Next Steps
+Shortcomings:
+
+72.5% coverage < target 80%.
+
+1.9x range may be too broad for monetization.
+
+Improvements:
+
+Add features: Title sentiment, days since last upload.
+
+Test XGBoost’s reg:quantileerror.
+
+How to Present in Interviews
+Structure: Follow the storyline above (problem → solution → impact).
+
+Metrics: Emphasize coverage (72.5%) over MAE.
+
+Visuals: Show the prediction intervals plot (explain the gray band).
+
+Lessons Learned:
+
+"Log-transforms improve modeling but inflate real-world error metrics."
+
+"Prediction intervals are more useful than point estimates for volatile targets."
+
+Pro Tip: Prepare a 1-slide summary with:
+
+Before/after metrics (MAE → coverage).
+
+Example prediction screenshot.
+
+2–3 improvement bullets.
+
+Would you like a mock Q&A based on this project?
+
+
+
+
+
+
+
+
+
+
+i i input a query wht metrics will i get when i tru to predict my data'
+When you input a query to predict YouTube video views using your model, here are the key metrics and outputs you'll receive, structured for clarity:
+
+1. Point Estimate (Median Prediction)
+What: The "most likely" view count (50th percentile).
+
+Metric:
+
+python
+median_views = 10**model.predict(input_data)[0]  # Convert from log scale
+Example Output:
+"Predicted median views: 100,000"
+
+2. Prediction Interval (80% Range)
+What: The range within which actual views will fall 72.5% of the time (adjustable to 80% with tweaks).
+
+Metrics:
+
+python
+lower_bound = 10**models[0.1].predict(input_data)[0]  # 10th percentile
+upper_bound = 10**models[0.9].predict(input_data)[0]  # 90th percentile
+Example Output:
+"Likely range: 53,000 to 190,000 views (72.5% confidence)"
+
+3. Uncertainty Quantification
+Coverage: Percentage of actual views falling within the predicted range (currently 72.5%).
+
+Interval Width:
+
+python
+width_multiplier = 10**(models[0.9].predict(input_data) - models[0.1].predict(input_data))
+Example Output:
+"Uncertainty: Views may vary by up to 1.9x from the median."
+
+4. Business-Ready Output (Recommended)
+Combine all metrics into a single interpretable response:
+
+python
+{
+  "predicted_median_views": 100000,
+  "prediction_interval": [53000, 190000],
+  "confidence": "72.5% coverage",
+  "uncertainty": "1.9x range (upper/lower bounds)",
+  "risk_assessment": "10% chance views < 53K; 10% chance > 190K"
+}
+Key Notes for Interviews
+Focus on Intervals:
+
+"For volatile metrics like views, ranges are more useful than exact numbers."
+
+Address the 72.5% Coverage:
+
+"We’re improving coverage by adding features like title sentiment and creator activity patterns."
+
+Log-Scale Translation:
+
+Always convert back to raw views (10**prediction) for stakeholders.
+
+Visual Aid:
+
+Show the prediction intervals plot to explain the gray band (80% interval).
+
+When to Use Which Metric
+Scenario	Recommended Output
+Content Planning	Median + Range (e.g., 100K ±1.9x)
+Risk Analysis	10th/90th Percentiles
+Sponsor Negotiations	Conservative Estimate (10th %ile)
+
+
+
+
+
+
+
+
+
+
+
+

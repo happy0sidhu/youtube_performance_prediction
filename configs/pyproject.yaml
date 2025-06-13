@@ -1,0 +1,23 @@
+data_config:
+  raw_data_path: data/raw/
+  processed_data_path: data/processed/
+  train_data_file: youtube_dataset_with_full_countries.csv
+  thumbnail_features_file: thumbnail_features.csv
+  
+model_config:
+  target_column: view_count
+  test_size: 0.2
+  random_state: 42
+  quantiles: [0.1, 0.5, 0.9]
+  
+train_config:
+  rf_params:
+    n_estimators: 463
+    max_depth: 30
+  lgbm_params:
+    learning_rate: 0.05
+    num_leaves: 31
+  
+app_config:
+  host: 0.0.0.0
+  port: 8000
