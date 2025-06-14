@@ -103,9 +103,9 @@ class TrainingPipeline:
                 
                 self.logger.info(f"Using simplified preprocessing with {X_train_simple.shape[1]} numeric features")
                 
-                # Train with simplified features (only median)
+                # Train with simplified features (but still with quantiles)
                 model_trainer = ModelTrainer(config)
-                models = {0.5: model_trainer.train_rf_model(X_train_simple, y_train)}
+                models = model_trainer.train_simplified(X_train_simple, y_train)
                 
                 # Save models
                 model_trainer.save_models(models, Path("artifacts/models"))
@@ -113,7 +113,6 @@ class TrainingPipeline:
                 # Evaluation
                 metrics = model_trainer.evaluate_models(models, X_test_simple, y_test)
                 metrics["mode"] = "simplified"
-                metrics["warning"] = "Only median prediction available in simplified mode"
                 
                 self.logger.info("=== Training Completed with Simplified Features ===")
                 self.logger.info(f"Metrics: {metrics}")

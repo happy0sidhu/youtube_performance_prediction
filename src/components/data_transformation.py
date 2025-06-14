@@ -15,7 +15,7 @@ class DataTransformation:
         self.logger = logging.getLogger(__name__)
         
     def get_preprocessor(self, df: pd.DataFrame):
-        """Create preprocessing pipeline with robust text handling"""
+        """Create preprocessing pipeline with more robust text handling"""
         try:
             # Numeric features
             numeric_features = [
@@ -42,22 +42,17 @@ class DataTransformation:
                 ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
             ])
             
-            # Dynamic text feature handling with safer parameters
+            # More robust text feature handling
             n_samples = len(df)
             max_text_features = min(500, max(10, n_samples // 10))
             
-            # Calculate min_df and max_df carefully
-            min_df = max(1, min(5, n_samples // 1000))  # More conservative min_df
-            max_df = 0.9  # Lower max_df to avoid conflicts with min_df
-            
-            self.logger.info(f"Text processing params - min_df: {min_df}, max_df: {max_df}, max_features: {max_text_features}")
-            
+            # More conservative text processing parameters
             text_transformer = Pipeline(steps=[
                 ('tfidf', TfidfVectorizer(
                     max_features=max_text_features,
                     stop_words='english',
-                    min_df=min_df,
-                    max_df=max_df,
+                    min_df=2,  # Reduced from 5 to 2
+                    max_df=0.95,  # Increased from 0.9 to 0.95
                     analyzer='word'
                 ))
             ])
@@ -68,8 +63,7 @@ class DataTransformation:
                     ('cat', categorical_transformer, categorical_features),
                     ('text', text_transformer, text_features)
                 ],
-                remainder='drop',
-                n_jobs=1
+                remainder='drop'
             )
             
             return preprocessor
@@ -79,9 +73,9 @@ class DataTransformation:
             raise
     
     def get_simple_preprocessor(self, df: pd.DataFrame):
-        """Create simplified preprocessing pipeline (numeric only)"""
+        """Create simplified preprocessing pipeline that still supports quantiles"""
         try:
-            # Numeric features only
+            # Numeric features only but keep it compatible with quantile training
             numeric_features = [
                 'duration_seconds', 'upload_hour', 'upload_dayofweek',
                 'subscribers', 'faces', 'has_text', 'brightness',

@@ -23,21 +23,12 @@ class ModelTrainer:
             
             # Adjust parameters based on dataset size
             n_samples = X_train.shape[0]
-            rf_config = self._adjust_rf_params(n_samples)
             lgbm_config = self._adjust_lgbm_params(n_samples)
             
-            # Train models for each quantile
+            # Train LightGBM models for all quantiles
             for q in quantiles:
                 self.logger.info(f"Training model for quantile: {q}")
                 
-                if q == 0.5:
-                    # For median, we can use RandomForest
-                    rf_model = RandomForestRegressor(**rf_config)
-                    rf_model.fit(X_train, y_train)
-                    models[q] = rf_model
-                    self.logger.info(f"Trained RandomForest for quantile {q}")
-                
-                # Train LightGBM for quantile regression
                 lgbm_model = LGBMRegressor(
                     objective='quantile',
                     alpha=q,
@@ -55,15 +46,38 @@ class ModelTrainer:
             self.logger.error(f"Error in model training: {str(e)}")
             raise
     
-    def train_rf_model(self, X_train, y_train):
-        """Train just RandomForest (for simplified pipeline)"""
+    def train_simplified(self, X_train, y_train):
+        """Train simplified models (still with quantiles)"""
         try:
-            rf_config = self._adjust_rf_params(X_train.shape[0])
-            model = RandomForestRegressor(**rf_config)
-            model.fit(X_train, y_train)
-            return model
+            self.logger.info("Starting simplified quantile model training")
+            
+            quantiles = self.config["model_config"].get("quantiles", [0.5])
+            models = {}
+            
+            # Use only LightGBM for simplified training
+            lgbm_config = {
+                "n_estimators": 50,
+                "max_depth": 5,
+                "learning_rate": 0.1
+            }
+            
+            for q in quantiles:
+                self.logger.info(f"Training simplified model for quantile: {q}")
+                
+                lgbm_model = LGBMRegressor(
+                    objective='quantile',
+                    alpha=q,
+                    **lgbm_config,
+                    verbose=-1
+                )
+                lgbm_model.fit(X_train, y_train)
+                models[q] = lgbm_model
+                self.logger.info(f"Trained simplified LightGBM for quantile {q}")
+            
+            return models
+            
         except Exception as e:
-            self.logger.error(f"Error training Random Forest: {str(e)}")
+            self.logger.error(f"Error in simplified model training: {str(e)}")
             raise
     
     def evaluate_models(self, models, X_test, y_test):
@@ -125,14 +139,6 @@ class ModelTrainer:
         except Exception as e:
             self.logger.error(f"Error saving models: {str(e)}")
             raise
-    
-    def _adjust_rf_params(self, n_samples):
-        """Adjust RandomForest parameters based on sample size"""
-        config = self.config["train_config"]["random_forest"].copy()
-        if n_samples < 100:
-            config["n_estimators"] = min(50, config["n_estimators"])
-            config["max_depth"] = min(5, config["max_depth"])
-        return config
     
     def _adjust_lgbm_params(self, n_samples):
         """Adjust LightGBM parameters based on sample size"""
