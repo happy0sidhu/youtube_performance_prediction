@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request
 from src.pipeline.prediction_pipeline import PredictionPipeline
 from src.components.image_processor import ImageProcessor
 import os
@@ -33,27 +33,26 @@ def predict():
             # Process form data
             upload_time = datetime.strptime(request.form['upload_time'], '%Y-%m-%dT%H:%M')
             upload_hour = upload_time.hour
-            upload_dayofweek = upload_time.weekday()  # Monday=0, Sunday=6
+            upload_dayofweek = upload_time.weekday()
             
-            # Process uploaded image
+            # Process thumbnail image
             if 'thumbnail' not in request.files:
-                return redirect(request.url)
+                return render_template('error.html', error_message="No thumbnail provided"), 400
                 
             file = request.files['thumbnail']
             if file.filename == '':
-                return redirect(request.url)
+                return render_template('error.html', error_message="No thumbnail selected"), 400
                 
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                thumbnail_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(thumbnail_path)
+            if not (file and allowed_file(file.filename)):
+                return render_template('error.html', error_message="Invalid file type"), 400
                 
-                # Extract image features
-                image_features = image_processor.extract_features(thumbnail_path)
-            else:
-                return render_template('error.html', 
-                                   error_message="Invalid thumbnail image"), 400
-
+            filename = secure_filename(file.filename)
+            thumbnail_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(thumbnail_path)
+            
+            # Extract image features
+            image_features = image_processor.extract_features(thumbnail_path)
+            
             # Prepare input data
             input_data = {
                 'title': request.form['title'],
@@ -63,7 +62,7 @@ def predict():
                 'subscribers': float(request.form['subscribers']),
                 'genre': request.form['genre'],
                 'country': request.form['country'],
-                **image_features  # Unpack all image features
+                **image_features
             }
             
             # Make prediction
@@ -77,7 +76,8 @@ def predict():
                     'upper': f"{prediction['prediction_range']['upper']:,}",
                     'confidence': prediction['prediction_range']['confidence']
                 },
-                'thumbnail_path': thumbnail_path
+                'thumbnail_path': thumbnail_path,
+                'in_target_range': prediction['is_in_target_range']
             }
             
             return render_template('prediction.html', result=result)

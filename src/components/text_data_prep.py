@@ -434,7 +434,7 @@ from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import OneHotEncoder
 from src.exception import CustomException
-from src.logger import logging
+from src.utils.logger import logging
 from pathlib import Path
 import nltk
 from nltk.corpus import stopwords
